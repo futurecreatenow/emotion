@@ -1,0 +1,8 @@
+{
+    "picture":{
+                "pic00":"./data/test00.jpeg",
+                "pic01":"./data/test01.jpeg",
+                "pic02":"./data/test02.jpg",
+                "pic03":"./data/test03.jpg"},
+    "intervel":5
+}
