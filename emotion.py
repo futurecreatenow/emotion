@@ -12,10 +12,55 @@ import datetime
 import time
 import cv2
 
+## 問題点
+## 1)ビデオが再生されない
+def video(video):
+    cap = cv2.VideoCapture(video) #ビデオの設定
+    cap_camera = cv2.VideoCapture(0) # カメラの設定
+    video_kind = "me"
+    count_cap = 0 # カウント用
+    count_limit = 10 # カウントの閾値
+    time_interval = 0.5 # 撮影間隔
+    if (cap.isOpened()== False):  
+        print("ビデオファイルを開くとエラーが発生しました") 
+
+    while(cap.isOpened()):
+
+        ret, frame = cap.read()
+        if ret == True:
+            cv2.imshow("Video", frame)                          
+
+            # カメラでの撮影
+            while cap_camera.isOpened():
+                ret_camera,frame_camera = cap_camera.read()
+                time_ = datetime.datetime.now()
+                timestr = time_.strftime("%H%M%S")
+                pic_path = f"./data/{video_kind + str(timestr)}.jpeg"
+                cv2.imwrite(pic_path, frame_camera)
+                count_cap += 1
+                # 特定の間隔をおいて撮影する:単位は秒
+                time.sleep(time_interval)
+                if count_cap == count_limit:
+                    break
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+            if cv2.waitKey(25) & 0xFF == ord('q'): 
+                break
+        
+        else:
+            break
+
+    # カメラとビデオを閉じる
+    cap.release()
+    cap_camera.release()
+    cv2.destroyAllWindows()
+
 def webcamera():
     cap = cv2.VideoCapture(0) # カメラCh.(ここでは0)を指定
     count = 3 # 画像の枚数
     count_cap = 0 # カウント用
+    time_interval = 10 # 撮影間隔
+    video_kind = 'relax' # 動画の種類や感情
     json_input = []
 
     # 画像をキャプチャする
@@ -24,13 +69,13 @@ def webcamera():
         # 画像を保存する
         time_ = datetime.datetime.now()
         timestr = time_.strftime("%H%M%S")
-        pic_path = f"./data/{str(timestr) +  str(count_cap)}.jpeg"
+        pic_path = f"./data/{video_kind + str(timestr)}.jpeg"
         cv2.imwrite(pic_path, frame)
         json_input.append(pic_path)
         count_cap += 1
 
         # 特定の間隔をおいて撮影する:単位は秒
-        time.sleep(1)
+        time.sleep(time_interval)
         if count_cap == count:
             break
         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -55,9 +100,12 @@ def emotion_cap(pic):
     EMOTIONS = {"angry":INITDATA,"disgust":INITDATA,"fear":INITDATA, "happy":INITDATA, "sad":INITDATA, "surprise":INITDATA,"neutral":INITDATA}
 
     # 全ての感情の取得
-    for key in EMOTIONS.keys():
-        if captured_emotion[0]['emotions'][key]:
-            EMOTIONS[key] = captured_emotion[0]['emotions'][key]
+    try:
+        for key in EMOTIONS.keys():
+            if captured_emotion[0]['emotions'][key]:
+                EMOTIONS[key] = captured_emotion[0]['emotions'][key]
+    except IndexError:
+        print('顔を検知できませんでした')
 
     return EMOTIONS
 
@@ -121,8 +169,9 @@ def mysql_insert(dic):
         connection.close()
 
 if __name__ == '__main__':
-    ## データを挿入したい場合は1、データを解析したい場合は2、カメラで画像を取得したい場合は3,その他は43
-    select_option = 4
+    ## データを挿入したい場合は1、データを解析したい場合は2、カメラで画像を取得したい場合は3,dataフォルダのデータをjsonに追加したい場合4,
+    ## MYSQLデータを整理したい場合は5、特定のビデオを閲覧して画像を取得したい場合6
+    select_option = 6
 
     # mysql情報
     HOST='localhost'
@@ -171,16 +220,28 @@ if __name__ == '__main__':
         # データベース情報を一括取得
         emotions_analysis_data = emocal.get_mysql(HOST,USER,PASSWORD,DATABASE,TABLE)
 
-        # pandasでデータベース化する
-        emocal.get_df(emotions_analysis_data)
+        ## pandasでデータベース化する
+        # emocal.get_df(emotions_analysis_data)
 
     elif select_option == 3:
         # webカメラから画像を取得して保存する
         webcamera()
-
-    elif select_option == 4:
-
-        # 練習用jsoｎファイルへの書き込み
+        # jsonに書き込みする
         json_file = sys.argv[1]
-        # emofig.pra(json_file)
         emofig.json_write(json_file)
+
+    # jsonファイルにない画像ファイルのみをjsonの辞書型に追加する
+    elif select_option == 4:
+        json_file = sys.argv[1]
+        emofig.json_write(json_file)
+
+    # jsonファイルに記載のないのデータをMYSQLから削除する
+    elif select_option == 5:
+        json_file = sys.argv[1]
+        emofig.mysql_delete(json_file,HOST,USER,PASSWORD,DATABASE,TABLE)
+
+    # videoを再生してcameraを起動する
+    elif select_option == 6:
+        video_path = f"./video/test2.mp4"
+        # json_file = sys.argv[1]
+        video(video_path)
