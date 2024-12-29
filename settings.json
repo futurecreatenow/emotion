@@ -1,9 +1,0 @@
-{
-    "pic_foleder":"./data",
-    "picture": {
-        "test00": "./data/test00.jpeg",
-        "test01": "./data/test01.jpeg",
-        "test02": "./data/test02.jpg",
-        "test03": "./data/test03.jpg"},
-    "intervel": 5
-}
